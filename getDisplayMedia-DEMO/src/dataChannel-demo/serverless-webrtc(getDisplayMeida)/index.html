@@ -1,0 +1,222 @@
+<!doctype html>
+<br>
+<head>
+    <meta charset="utf-8">
+    <title>getDisplayMedia WebRTC p2p </title>
+    <!--<script src="js/adapter.js"></script>-->
+    <!--<script src="js/jquery-2.0.0.js"></script>-->
+    <script src="js/jquery-3.4.0.min.js"></script>
+    <script src="js/bootstrap.js"></script>
+    <script src="js/sdp_tools.js"></script>
+    <link rel="stylesheet" href="css/index.css" />
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="css/serverless-webrtc-bootstrap.css" rel="stylesheet">
+    <style>
+
+    </style>
+    <style>
+
+      #firdiv, #secdiv{
+        width: 80px;
+        height: 20px;
+        background-color: aqua;
+        display: none;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        font-size: 12px;
+      }
+
+      .localVideoText, .remoteVideoText{
+        color: cyan;
+        position: absolute;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.48);
+        /*z-index: 999;*/
+      }
+      .positionInformation{
+        width: 120px;
+        height: 50px;
+        text-align: left;
+        color: cyan;
+        position: absolute;
+        left: 0;
+        bottom: 5px;
+        background-color: rgba(0, 0, 0, 0.48);
+        /*z-index: 999;*/
+      }
+    </style>
+</head>
+
+
+<div style="display: none">
+    <span style ="font-weight:bold;">设置的profile-level-id：</span>
+    <input type="text" id="setLevelId" style="width: 200px;height: 30px; margin-top:10px;" value="42e028">
+</div>
+
+<header class="header">
+  <div class="wrap">
+    <div class="hLeft">
+      <h2 style="text-align: center">video 展示信息</h2>
+      <div>
+        <div style="padding:5px;" >
+          <div style="position: relative">
+            <span class="localVideoText" >localVideo</span>
+            <video id="localVideo" style=" width:950px;height:600px; border:1px solid red; "></video>
+            <span class="positionInformation"></span>
+            <div id="firdiv">
+              <span id="firspan"></span>
+            </div>
+          </div>
+          <div>
+            <span style="margin-left:10px;display:block;">本地屏幕共享</span>
+            <div id="presentHtml" ></div>
+            <div id="local_bytesSent"></div>
+          </div>
+        </div>
+
+        </hr>
+
+        <div style="padding:5px;">
+          <div style="position: relative">
+            <span class="remoteVideoText">remoteVideo</span>
+            <video id="remoteVideo" style="width:950px;height:600px;border:1px solid red;"></video>
+            <div id="secdiv">
+              <span id="secspan"></span>
+            </div>
+          </div>
+          <div>
+            <span style="margin-left:10px;display:block;">远端的屏幕共享</span>
+            <div id="presentRemoteHtml" ></div>
+            <div id="remote_bytesSent"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal" id="showLocalOffer" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" hidden>
+        <div class="modal-header">
+          <h3 id="myModalLabel">Send your local offer to someone else</h3>
+        </div>
+        <div class="modal-body">
+          Here's your "offer" -- it tells someone else how to connect to you.  Send the whole thing to them, for example in an instant message or e-mail.
+          <br/>
+          <textarea class="input-large" id="localOffer" name="localOffer" rows="10" cols="100"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="offerSentBtn" data-dismiss="modal" aria-hidden="true">Okay, I sent it.</button>
+        </div>
+      </div>
+
+      <div class="modal" id="showLocalAnswer" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" hidden>
+        <div class="modal-header">
+          <h3 id="myModalLabel">Send your local answer to someone else</h3>
+        </div>
+        <div class="modal-body">
+          Here's your "answer" -- it tells someone else how to connect to you.  Send the whole thing to them, for example in an instant message or e-mail.
+          <br/>
+          <textarea class="input-large" id="localAnswer" name="localAnswer" rows="10" cols="100"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="answerSentBtn" data-dismiss="modal" aria-hidden="true">Okay, I sent it.</button>
+        </div>
+      </div>
+
+      <div class="modal" id="getRemoteOffer" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" hidden>
+        <div class="modal-header">
+          <h3 id="myModalLabel">Paste the "offer" you received</h3>
+        </div>
+        <div class="modal-body">
+          The person who created the room will send you an "offer" string -- paste it here.
+          <br/>
+          <textarea class="input-large" id="remoteOffer" name="remoteOffer" rows="10" cols="100"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="offerRecdBtn" data-dismiss="modal" aria-hidden="true">Okay, I pasted it.</button>
+        </div>
+      </div>
+
+      <div class="modal" id="getRemoteAnswer" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" hidden>
+        <div class="modal-header">
+          <h3 id="myModalLabel">Paste the "answer" you received</h3>
+        </div>
+        <div class="modal-body">
+          Now paste in the "answer" that was sent back to you.
+          <br/>
+          <textarea class="input-large" id="remoteAnswer" name="remoteAnswer" rows="10" cols="100"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="answerRecdBtn" data-dismiss="modal" aria-hidden="true">Okay, I pasted it.</button>
+        </div>
+      </div>
+
+      <div class="modal" id="waitForConnection" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" hidden>
+        <div class="modal-header">
+          <h3 id="myModalLabel">Waiting for connection</h3>
+        </div>
+        <div class="modal-body">
+          This dialog will disappear when a connection is made.
+        </div>
+        <div class="spinner" align="center">
+          <img src="img/spinner.gif" />
+        </div>
+      </div>
+
+      <div class="modal" id="createOrJoin" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-header">
+          <h3 id="myModalLabel">Create or join a room?</h3>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" id="joinBtn" data-dismiss="modal" aria-hidden="true">Join</button>
+          <button class="btn btn-primary" id="createBtn" data-dismiss="modal" aria-hidden="true">Create</button>
+        </div>
+      </div>
+    </div>
+    <div class="hRight">
+      <h2 style="text-align: center">聊天 展示信息</h2>
+      <div >
+        <fieldset class="well">
+          <p class="head muted">
+            Serverless WebRTC chat demonstration.
+          </p>
+          <div class="text-info" id="chatlog" style="height:600px; overflow:auto;">
+          </div>
+        </fieldset>
+        <section>
+          <form class="form-inline" onSubmit="return sendMessage()" action="">
+            <input type="text" id="messageTextBox" placeholder="Type your message here">
+            <button type="submit" id="sendMessageBtn" class="btn">Send message</button>
+          </form>
+          <input type="file" id="fileBtn">
+        </section>
+        <!--<section>-->
+          <!--<div class="progress">-->
+            <!--<div class="label">Send progress: </div>-->
+            <!--<progress id="sendProgress" max="0" value="0"></progress>-->
+          <!--</div>-->
+
+          <!--<div class="progress">-->
+            <!--<div class="label">Receive progress: </div>-->
+            <!--<progress id="receiveProgress" max="0" value="0"></progress>-->
+          <!--</div>-->
+          <!--<div class="dataFile">-->
+            <!--<div id="bitrate"></div>-->
+            <!--<a id="download"></a>-->
+            <!--<span id="status"></span>-->
+          <!--</div>-->
+        <!--</section>-->
+      </div>
+    </div>
+  </div>
+</header>
+
+
+
+
+
+
+
+<script src="js/serverless-webrtc.js"></script>
+<script src="js/file-transfer.js"></script>
+</body>
+</html>

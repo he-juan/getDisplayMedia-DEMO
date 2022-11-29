@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>点对点demo 测试静音抑制问题</title>
+    <link rel="stylesheet" href="css/index.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/content.css" />
+</head>
+<body>
+   <!----------------------------------复杂dataChannel的处理（双页面）--------------------------------------------->
+   <div style="text-align:center;">
+       <h2 style="text-align: center;">点对点demo 测试静音抑制问题以及dataChannel相关处理</h2>
+       <button style="text-align: center; " onclick="hangup()">disconnect</button>
+       <button style="text-align: center; " onclick="newCreate()">creatNewPeer</button>
+   </div>
+
+    <div id="container_wrapper" style="width:100%; height:98%;">
+        <section>
+            <!--<div>-->
+                <!--<button  onclick="connect()" >Connect</button>-->
+                <!--<button  @click="${this.disconnect.bind(this)}" disabled>Disconnect</button>-->
+            <!--</div>-->
+
+            <div  style="text-align:center; height:100%" >
+                <fieldset class="well" style="height:100%">
+                    <legend>聊天室</legend>
+                    <p class="head muted">
+                        Serverless WebRTC chat demonstration.
+                    </p>
+                    <div class="text-info" id="chatlog" style="width:80vh; height:50vh; overflow:auto;">
+                    </div>
+                </fieldset>
+                <form class="form-inline" onSubmit="return sendMessage()" action="">
+                    <input type="text" id="messageTextBox" placeholder="Type your message here">
+                    <button type="submit" id="sendMessageBtn" class="btn" >Send message</button>
+                </form>
+                <input type="file" id="fileBtn">
+            </div>
+
+            <section>
+                <div class="progress">
+                    <div class="label">Send progress: </div>
+                    <progress id="sendProgress" max="0" value="0"></progress>
+                </div>
+
+                <div class="progress">
+                    <div class="label">Receive progress: </div>
+                    <progress id="receiveProgress" max="0" value="0"></progress>
+                </div>
+                <div class="dataFile">
+                    <div id="bitrate"></div>
+                    <a id="download"></a>
+                    <span id="status"></span>
+                </div>
+            </section>
+        </section>
+        <!--#endregion-->
+        <!--<section>-->
+            <!--<div id="videoContrainter" style="width:700px">-->
+                <!--<div style="margin-left:80px;margin-bottom:30px;" >-->
+                    <!--<video id="localVideo" style=" width:640px;height:280px; border:1px solid red; text-align: center; "></video>-->
+                    <!--<span style="margin-left:10px;display:block;">本地屏幕共享</span>-->
+                    <!--<div id="presentHtml" ></div>-->
+                    <!--<div id="local_bytesSent"></div>-->
+                <!--</div>-->
+
+                <!--</hr>-->
+                <!--<div style="margin-left:80px; ">-->
+                    <!--<video id="remoteVideo" style="width:640px;height:280px;border:1px solid red; text-align: center;"></video>-->
+                    <!--<span style="margin-left:10px;display:block;">远端的屏幕共享</span>-->
+                    <!--<div id="presentRemoteHtml" ></div>-->
+                    <!--<div id="remote_bytesSent"></div>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</section>-->
+    </div>
+
+    <!-----------------------------------连接弹框-------------------------------------------->
+    <div id="popupArea">
+        <div class="createOrjoin">
+            <div class="selectEncoding">
+                <p class="tips"><strong>注意</strong>：请选择想要使用的编码</p>
+                <div class="selectContent">
+                    <button class="opus" onclick="selectEncod('opus')">SELECT OPUS</button>
+                    <button class="pcmu" onclick="selectEncod('pcmu')">SELECT PCMU</button>
+                </div>
+            </div>
+            <div class="setSdp">
+                <p class="tips"><strong>注意</strong>：开启两个tab页面，一个点击join，一个点击create，交换sdp</p>
+                <div class="containerBtn" >
+                    <button  class="join" onclick="join()" >join</button>
+                    <button  class="create" onclick="create()">create</button>
+                </div>
+            </div>
+            <div class="isReceiveTips" style="display:none;">
+                <p class="isReceive"></p>
+                <div class="containerBtn" >
+                    <button  class="yes" onclick="isReceiveRemote(1)" >YES</button>
+                    <button  class="no" onclick="isReceiveRemote(0)">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="showLocalOffer">
+            <div class="showLocalOffer">
+                <div class="modal-header">
+                    <h3 id="myModalLabel">Send your local offer to someone else</h3>
+                </div>
+                <div class="modal-body">
+                    Here's your "offer" -- it tells someone else how to connect to you.  Send the whole thing to them, for example in an instant message or e-mail.
+                    <br/>
+                    <textarea class="input-large" id="localOffer" name="localOffer" rows="10" cols="100"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="offerSentBtn" data-dismiss="modal" aria-hidden="true">Okay, I sent it.</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="showLocalAnswer" style="display:none">
+            <div class="showLocalAnswer">
+                <div class="modal-header">
+                    <h3 id="myModalLabel">Send your local answer to someone else</h3>
+                </div>
+                <div class="modal-body">
+                    Here's your "answer" -- it tells someone else how to connect to you.  Send the whole thing to them, for example in an instant message or e-mail.
+                    <br/>
+                    <textarea class="input-large" id="localAnswer" name="localAnswer" rows="10" cols="100"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="answerSentBtn" data-dismiss="modal" aria-hidden="true">Okay, I sent it.</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="getRemoteOffer">
+            <div class="getRemoteOffer">
+                <div class="modal-header">
+                    <h3 id="myModalLabel">Paste the "offer" you received</h3>
+                </div>
+                <div class="modal-body">
+                    The person who created the room will send you an "offer" string -- paste it here.
+                    <br/>
+                    <textarea class="input-large" id="remoteOffer" name="remoteOffer" rows="10" cols="100"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="offerRecdBtn" data-dismiss="modal" aria-hidden="true">Okay, I pasted it.</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="getRemoteAnswer">
+            <div class="getRemoteAnswer">
+                <div class="modal-header">
+                    <h3 id="myModalLabel">Paste the "answer" you received</h3>
+                </div>
+                <div class="modal-body">
+                    Now paste in the "answer" that was sent back to you.
+                    <br/>
+                    <textarea class="input-large" id="remoteAnswer" name="remoteAnswer" rows="10" cols="100"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="answerRecdBtn" data-dismiss="modal" aria-hidden="true">Okay, I pasted it.</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/sdp_tools.js"></script>
+    <!--<script src="js/test.js"></script>-->
+    <!--<script src="js/spark-md5.min.js"></script>-->
+    <script src="js/main.js"></script>
+
+</body>
+</html>
